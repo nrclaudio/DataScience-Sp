@@ -8,7 +8,7 @@ env.bak/
 venv.bak/
 
 #sensitive
-assignment1/data/
+assignment1/config.py
 
 #pycache
 
