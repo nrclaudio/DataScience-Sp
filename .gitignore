@@ -6,3 +6,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+#sensitive
+assignment1/data/
+
+#pycache
+
+__PYCACHE__/
