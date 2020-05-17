@@ -2,8 +2,8 @@
 #
 # mkdir data
 # python twitter_stream_download.py -q apple -d data
-# 
-# It will produce the list of tweets for the query "apple" 
+#
+# It will produce the list of tweets for the query "apple"
 # in the file data/stream_apple.json
 
 import tweepy
@@ -15,6 +15,7 @@ import argparse
 import string
 import config
 import json
+
 
 def get_parser():
     """Get parser for command line arguments."""
@@ -79,11 +80,13 @@ def convert_valid(one_char):
     else:
         return '_'
 
+
 @classmethod
 def parse(cls, api, raw):
     status = cls.first_parse(api, raw)
     setattr(status, 'json', json.dumps(raw))
     return status
+
 
 if __name__ == '__main__':
     parser = get_parser()
@@ -93,4 +96,4 @@ if __name__ == '__main__':
     api = tweepy.API(auth)
 
     twitter_stream = Stream(auth, MyListener(args.data_dir, args.query))
-    twitter_stream.filter(track=[args.query])
+    twitter_stream.filter(languages=["en"], track=[args.query])
