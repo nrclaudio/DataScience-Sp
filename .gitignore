@@ -10,12 +10,17 @@ venv.bak/
 
 #sensitive
 assignment1/config.py
-
+assignment1/output.txt
+assignment1/data/*
 #pycache
 
 __PYCACHE__/
 
 #outputs
 
+*/data/*
+data/*
+data/
+assignment1/output.txt
 *.txt
 *.json
