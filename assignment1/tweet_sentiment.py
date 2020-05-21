@@ -14,7 +14,6 @@ def sent_dict(fp):
 def parse_json(fp):
     tweets_text = [json.loads(line)['text'] for line in fp
                    if not json.loads(line)['is_quote_status']
-                   and not json.loads(line)['retweeted']
                    and not json.loads(line)['text'].startswith('RT')]
     return tweets_text
 
@@ -22,7 +21,8 @@ def parse_json(fp):
 def tweet_sent(texts, scores):
     sentiments = []
     for text in texts:
-        words = [regex.sub('', word) for word in text.split(' ') if not word.startswith(("https"))]
+        words = [regex.sub('', word) for word in text.split(
+            ' ') if not word.startswith(("https"))]
         sentiments.append(sum(int(scores.get(word, 0)) for word in words))
     return sentiments
 
