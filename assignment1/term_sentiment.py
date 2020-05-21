@@ -40,6 +40,15 @@ def norm(sentiments, counts):
     return ret
 
 
+def tweet_sent(texts, scores):
+    sentiments = []
+    for text in texts:
+        words = [regex.sub('', strip_punct(word).lower())
+                 for word in text.split(' ') if not word.startswith(("https"))]
+        sentiments.append(sum(int(scores.get(word, 0)) for word in words))
+    return sentiments
+
+
 def inner_infer_sent(texts, scores):
     inner_sent = {}
     word_count = Counter()
@@ -60,15 +69,6 @@ def inner_infer_sent(texts, scores):
                                                  int(scores.get(posterior, 0))]) / (index + 1)
     inner_sent = norm(inner_sent, word_count)
     return inner_sent
-
-
-def tweet_sent(texts, scores):
-    sentiments = []
-    for text in texts:
-        words = [regex.sub('', strip_punct(word).lower())
-                 for word in text.split(' ') if not word.startswith(("https"))]
-        sentiments.append(sum(int(scores.get(word, 0)) for word in words))
-    return sentiments
 
 
 def infer_sent_term(texts, scores):
