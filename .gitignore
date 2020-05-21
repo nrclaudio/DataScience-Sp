@@ -15,7 +15,7 @@ assignment1/data/*
 #pycache
 
 __PYCACHE__/
-
+.DS_store
 #outputs
 
 */data/*
