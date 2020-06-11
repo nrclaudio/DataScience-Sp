@@ -24,6 +24,8 @@ run for a while if you wish.
 import sys
 import json
 import re
+from collections import defaultdict
+
 
 regex = re.compile("[^a-zA-Z0-9.'-]")
 
@@ -90,34 +92,86 @@ states = {
 
 
 def parse_json(fp):
+    """
+    ------
+    input: tweets file handle
+    output: list(tweets_place_usr), list(tweets_text)
+    ------
 
-    tweets_state_usr = [json.loads(line)['user'].get('location') for line in fp
-                        if 'created_at' in json.loads(line)
-                        and not json.loads(line).get('is_quote_status', False)
-                        and not json.loads(line).get('text', 'RT').startswith('RT')]
-    fp.seek(0)
+    parses tweets to extract text field usr location data and place location data if available. Moreover, it maps both location information to a single list for None values
+    """
 
-    tweets_state_place = []
-    for line in fp:
-        if not json.loads(line).get('is_quote_status', False) and not json.loads(line).get('text', 'RT').startswith('RT'):
+    tweets = defaultdict(lambda: defaultdict(int))
+    for i, line in enumerate(fp):
+        if 'created_at' in json.loads(line) and not json.loads(line).get('is_quote_status', False) and not json.loads(line).get('text', 'RT').startswith('RT'):
+
             tweet = json.loads(line)
-            if tweet['place'] is not None:
-                tweets_state_place.append(tweet['place'].get('full_name'))
-            else:
-                tweets_state_place.append(None)
 
-    for index, (a, b) in enumerate(zip(tweets_state_usr, tweets_state_place)):
-        if a is None and b is not None:
-            tweets_state_usr[index] = b
-        elif a is None and b is None:
-            del a[index]
-            del b[index]
-    return tweets_state_usr
+            tweets[i]['text'] = tweet['text']
+            tweets[i]['state_usr'] = tweet['user'].get('location')
+            if tweet['place'] is not None:
+                tweets[i]['state_place'] = tweet['place'].get('full_name')
+            elif tweet['place'] is None:
+                tweets[i]['state_place'] = None
+    return tweets
+    # tweets_text = [json.loads(line)['text'] for line in fp
+    #                if 'created_at' in json.loads(line)
+    #                and not json.loads(line).get('is_quoted_status', False)
+    #                and not json.loads(line).get('text', 'RT').startswith('RT')]
+    # fp.seek(0)
+
+    # tweets_state_usr = [json.loads(line)['user'].get('location') for line in fp
+    #                     if 'created_at' in json.loads(line)
+    #                     and not json.loads(line).get('is_quote_status', False)
+    #                     and not json.loads(line).get('text', 'RT').startswith('RT')]
+    # fp.seek(0)
+
+    # tweets_state_place = []
+    # for line in fp:
+    #     if 'created_at' in json.loads(line) and not json.loads(line).get('is_quote_status', False) and not json.loads(line).get('text', 'RT').startswith('RT'):
+    #         tweet = json.loads(line)
+    #         if tweet['place'] is not None:
+    #             tweets_state_place.append(tweet['place'].get('full_name'))
+    #         else:
+    #             tweets_state_place.append(None)
+
+    # return tweets_text, tweets_state_usr
+
+
+def sent_dict(fp):
+    dict_afinn = {word: value.rstrip('\n') for line in fp
+                  for word, value in (line.split('\t'),)}
+    fp.seek(0)
+    return dict_afinn
+
+
+def tweet_sent(texts, scores):
+    sentiments = []
+    for text in texts:
+        words = [regex.sub('', word) for word in text.split(
+            ' ') if not word.startswith(("https"))]
+        sentiments.append(sum(int(scores.get(word, 0)) for word in words))
+    return sentiments
+
+
+# def happiest_state(texts, sentiments, states):
+    # for i, text in enumerate(texts):
+    #     state =
+    #     words = [regex.sub('', strip_punct(word).lower())
+    #              for word in text.split(' ') if not word.startswith(("https"))]
 
 
 def main():
-    json_file = open(sys.argv[1])
-    tweets_state = parse_json(json_file)
+    sent_file = open(sys.argv[1])
+    json_file = open(sys.argv[2])
+    #sent_scores = sent_dict(sent_file)
+    tweets_text = parse_json(json_file)
+    print(tweets_text)
+    # print(len(tweets_text))
+    # print(len(tweets_state))
+    #sentiments = tweet_sent(tweets_text, sent_scores)
+    # print(len(sentiments))
+    # happiest_state(tweets_text, sentiments, tweets_state)
 
 
 if __name__ == '__main__':
