@@ -25,6 +25,7 @@ import sys
 import json
 import re
 from collections import defaultdict
+from difflib import SequenceMatcher
 
 
 regex = re.compile("[^a-zA-Z0-9.'-]")
@@ -95,10 +96,10 @@ def parse_json(fp):
     """
     ------
     input: tweets file handle
-    output: list(tweets_place_usr), list(tweets_text)
+    output: list(tweets)
     ------
 
-    parses tweets to extract text field usr location data and place location data if available. Moreover, it maps both location information to a single list for None values
+    parses tweets to extract text field usr location data and place location data if available. It also returns the text in the tweet for sentiment inference
     """
 
     tweets = defaultdict(lambda: defaultdict(int))
@@ -108,34 +109,15 @@ def parse_json(fp):
             tweet = json.loads(line)
 
             tweets[i]['text'] = tweet['text']
-            tweets[i]['state_usr'] = tweet['user'].get('location')
+            if tweet['user']['location'] is not None:
+                tweets[i]['state_usr'] = tweet['user'].get('location')
+            elif tweet['user']['location'] is None:
+                tweets[i]['state_usr'] = 'state_usr not defined'
             if tweet['place'] is not None:
                 tweets[i]['state_place'] = tweet['place'].get('full_name')
             elif tweet['place'] is None:
-                tweets[i]['state_place'] = None
+                tweets[i]['state_place'] = 'state_place not defined'
     return tweets
-    # tweets_text = [json.loads(line)['text'] for line in fp
-    #                if 'created_at' in json.loads(line)
-    #                and not json.loads(line).get('is_quoted_status', False)
-    #                and not json.loads(line).get('text', 'RT').startswith('RT')]
-    # fp.seek(0)
-
-    # tweets_state_usr = [json.loads(line)['user'].get('location') for line in fp
-    #                     if 'created_at' in json.loads(line)
-    #                     and not json.loads(line).get('is_quote_status', False)
-    #                     and not json.loads(line).get('text', 'RT').startswith('RT')]
-    # fp.seek(0)
-
-    # tweets_state_place = []
-    # for line in fp:
-    #     if 'created_at' in json.loads(line) and not json.loads(line).get('is_quote_status', False) and not json.loads(line).get('text', 'RT').startswith('RT'):
-    #         tweet = json.loads(line)
-    #         if tweet['place'] is not None:
-    #             tweets_state_place.append(tweet['place'].get('full_name'))
-    #         else:
-    #             tweets_state_place.append(None)
-
-    # return tweets_text, tweets_state_usr
 
 
 def sent_dict(fp):
@@ -145,33 +127,52 @@ def sent_dict(fp):
     return dict_afinn
 
 
-def tweet_sent(texts, scores):
-    sentiments = []
-    for text in texts:
-        words = [regex.sub('', word) for word in text.split(
+def tweet_sent(tweets_dict, scores):
+    """
+    creates a new key for the tweet with its sentiment score
+    """
+    for tweet in tweets_dict:
+        words = [regex.sub('', word) for word in tweets_dict[tweet]['text'].split(
             ' ') if not word.startswith(("https"))]
-        sentiments.append(sum(int(scores.get(word, 0)) for word in words))
-    return sentiments
+        tweets_dict[tweet]['score'] = sum(
+            int(scores.get(word, 0)) for word in words)
+    return tweets_dict
 
 
-# def happiest_state(texts, sentiments, states):
-    # for i, text in enumerate(texts):
-    #     state =
-    #     words = [regex.sub('', strip_punct(word).lower())
-    #              for word in text.split(' ') if not word.startswith(("https"))]
+def tweet_state(tweets_score):
+    """
+    creates a new key for the intersection between user defined
+    location and twitter determined location
+    """
+    for tweet in tweets_score:
+        if tweets_score[tweet]['state_place'] is not None and ',' in tweets_score[tweet]['state_place']:
+            tweets_score[tweet]['state'] = tweets_score[tweet]['state_place'].split(', ')[
+                1]
+        else:
+            tweets_score[tweet]['state'] = tweets_score[tweet]['state_usr']
+    return tweets_score
+
+
+def state_score(tweets_state):
+    """
+    returns a dictionary with the score per state
+    """
+    state_score = defaultdict(int)
+    for key, val in tweets_state.items():
+        if val['state'] in states:
+            state_score[val['state']] += val['score']
+    return state_score
 
 
 def main():
     sent_file = open(sys.argv[1])
     json_file = open(sys.argv[2])
-    #sent_scores = sent_dict(sent_file)
     tweets_text = parse_json(json_file)
-    print(tweets_text)
-    # print(len(tweets_text))
-    # print(len(tweets_state))
-    #sentiments = tweet_sent(tweets_text, sent_scores)
-    # print(len(sentiments))
-    # happiest_state(tweets_text, sentiments, tweets_state)
+    scores = sent_dict(sent_file)
+    tweets_score = tweet_sent(tweets_text, scores)
+    tweets_state = tweet_state(tweets_score)
+    state_scores = state_score(tweets_state)
+    print(max(state_scores, key=lambda key: state_scores[key]))
 
 
 if __name__ == '__main__':
