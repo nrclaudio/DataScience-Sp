@@ -12,22 +12,20 @@ mr = MapReduce.MapReduce()
 
 
 def mapper(record):
+
   # key: document identifier
   # value: document contents
   key = record[0]
   value = record[1]
-  words = value.split()
+  words = list(set(value.split()))
   for w in words:
-    mr.emit_intermediate(w, 1)
+    mr.emit_intermediate(w.lower(), key)
 
 
 def reducer(key, list_of_values):
   # key: word
-  # value: list of occurrence counts
-  total = 0
-  for v in list_of_values:
-    total += v
-  mr.emit((key, total))
+  # list_of_values: list of text identifier occurences
+  mr.emit((key, list_of_values))
 
 
 # Do not modify below this line
